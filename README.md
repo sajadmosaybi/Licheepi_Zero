@@ -1,80 +1,148 @@
-# Buildroot 2023.05 for Lichee Pi Zero (Allwinner V3s)
+# Customize Buildroot (Lichee Pi Zero)
+## Change Hostname, Login Banner, and Root Password
 
-This repository contains **Buildroot 2023.05** configured for the **Lichee Pi Zero** development board, based on the **Allwinner V3s (ARM Cortex-A7)** SoC.
+This guide explains how to customize a Buildroot 2023.05 image for the **Lichee Pi Zero (Allwinner V3s)** by:
+- Setting a **custom hostname**
+- Editing the **login banner (motd / issue)**
+- Setting a **root password**
 
-## Project Structure
+---
+
+## 📌 1. Change the Hostname
+
+Edit the hostname file:
 ```
-my-buildroot-project/
-├── buildroot/              # Buildroot 2023.05 source
-├── configs/                # (optional) Custom configs will go here
-└── board/licheepi-zero/    # (optional) Board-specific files
-```
-
-## Requirements
-
-| Tool | Version |
-|------|----------|
-| Host OS | Linux (Ubuntu recommended) |
-| GCC Toolchain | Installed by Buildroot |
-| Dependencies | `git build-essential ncurses-dev bison flex python3` |
-| SD Card | 8GB or more |
-
-### Install dependencies (Ubuntu)
-```bash
-sudo apt update
-sudo apt install git build-essential bc bison flex libssl-dev ncurses-dev python3 wget cpio unzip
+buildroot/board/licheepi-zero/rootfs-overlay/etc/hostname
 ```
 
-## Build Instructions
+Add your hostname, for example:
+```
+licheepi-zero-Dock
+```
+
+If the file doesn't exist, create it.  
+Then enable overlay in Buildroot:
 
 ```bash
-cd buildroot
-make distclean
-make licheepi_zero_defconfig
-make -j$(nproc)
+make menuconfig
+# System configuration --->
+#   Root filesystem overlay directories ---> (board/licheepi-zero/rootfs-overlay)
 ```
 
-## Output Files
-Located in:
+---
+
+## 📌 2. Change Login Banner (MOTD)
+
+Edit or create this file:
 ```
-buildroot/output/images/
+buildroot/board/licheepi-zero/rootfs-overlay/etc/motd
 ```
 
-| File | Description |
-|------|--------------|
-| `rootfs.ext4` | Root filesystem |
-| `u-boot-sunxi-with-spl.bin` | Bootloader |
-| `zImage` | Kernel |
-| `sun8i-v3s-licheepi-zero.dtb` | Device Tree |
+Example content:
+```
+===========================================
+ Welcome to My Lichee Pi Zero System
+ Buildroot 2023.05 | Allwinner V3s Cortex-A7
+===========================================
+```
 
-## Flash to SD Card
+### Optional: Change `/etc/issue` (shown before login)
+```
+buildroot/board/licheepi-zero/rootfs-overlay/etc/issue
+```
 
+Example:
+```
+My Lichee Pi Zero Linux (\n \l)
+Login with user: root
+```
+
+---
+
+## 📌 3. Change Root Password
+
+Run the Buildroot configuration tool:
+```bash
+make menuconfig
+```
+
+Go to:
+```
+System configuration --->
+    Root password ---> (enter your password)
+```
+
+Or leave it empty for no password.
+
+---
+
+## 📌 4. Rebuild the Image
+
+To apply changes:
+```bash
+make
+```
+
+If issues occur, rebuild root filesystem only:
+```bash
+make fs
+```
+
+---
+
+## 📌 5. Flash and Test
+
+Flash the bootloader and filesystem as usual:
 ```bash
 cd buildroot/output/images/
 sudo dd if=u-boot-sunxi-with-spl.bin of=/dev/sdX bs=1024 seek=8
 ```
 
-Partition layout:
-| Partition | Format | Purpose |
-|-----------|---------|----------|
-| p1 | FAT32 | Kernel + DTB |
-| p2 | EXT4 | Rootfs |
+Mount `/dev/sdX2` and verify:
+```
+etc/hostname
+etc/motd
+etc/issue
+```
 
-## Serial Console
-- Baud: **115200**
-- Command:
+Serial console login:
 ```bash
 picocom -b 115200 /dev/ttyUSB0
 ```
 
-Login:
-```
-root
-```
+---
 
-## Resources
-- Buildroot Manual: https://buildroot.org/downloads/manual/manual.html
-- Lichee Pi Zero Docs: https://licheepizero.readthedocs.io
-- Linux-Sunxi: https://linux-sunxi.org
+## 📌 Summary Table
+
+| Task | File / Setting |
+|------|-----------------|
+| Hostname | `/etc/hostname` |
+| Banner (after login) | `/etc/motd` |
+| Banner (before login) | `/etc/issue` |
+| Root password | menuconfig → System configuration |
 
 ---
+
+## ✔️ Recommended Folder Layout
+
+```
+board/
+└── licheepi-zero/
+    └── rootfs-overlay/
+        └── etc/
+            ├── hostname
+            ├── motd
+            └── issue
+```
+
+---
+
+## 🎯 Final Notes
+
+- This method is scalable for production systems.
+- Overlay keeps your customizations version-controlled.
+- No manual changes are needed after boot.
+
+---
+
+🚀 *Your Lichee Pi Zero now has a custom identity!*
