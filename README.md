@@ -1,80 +1,111 @@
-# Buildroot 2023.05 for Lichee Pi Zero (Allwinner V3s)
+# Buildroot: Changing Kernel and Toolchain Version
 
-This repository contains **Buildroot 2023.05** configured for the **Lichee Pi Zero** development board, based on the **Allwinner V3s (ARM Cortex-A7)** SoC.
-
-## Project Structure
-```
-my-buildroot-project/
-├── buildroot/              # Buildroot 2023.05 source
-├── configs/                # (optional) Custom configs will go here
-└── board/licheepi-zero/    # (optional) Board-specific files
-```
-
-## Requirements
-
-| Tool | Version |
-|------|----------|
-| Host OS | Linux (Ubuntu recommended) |
-| GCC Toolchain | Installed by Buildroot |
-| Dependencies | `git build-essential ncurses-dev bison flex python3` |
-| SD Card | 8GB or more |
-
-### Install dependencies (Ubuntu)
-```bash
-sudo apt update
-sudo apt install git build-essential bc bison flex libssl-dev ncurses-dev python3 wget cpio unzip
-```
-
-## Build Instructions
-
-```bash
-cd buildroot
-make distclean
-make licheepi_zero_defconfig
-make -j$(nproc)
-```
-
-## Output Files
-Located in:
-```
-buildroot/output/images/
-```
-
-| File | Description |
-|------|--------------|
-| `rootfs.ext4` | Root filesystem |
-| `u-boot-sunxi-with-spl.bin` | Bootloader |
-| `zImage` | Kernel |
-| `sun8i-v3s-licheepi-zero.dtb` | Device Tree |
-
-## Flash to SD Card
-
-```bash
-cd buildroot/output/images/
-sudo dd if=u-boot-sunxi-with-spl.bin of=/dev/sdX bs=1024 seek=8
-```
-
-Partition layout:
-| Partition | Format | Purpose |
-|-----------|---------|----------|
-| p1 | FAT32 | Kernel + DTB |
-| p2 | EXT4 | Rootfs |
-
-## Serial Console
-- Baud: **115200**
-- Command:
-```bash
-picocom -b 115200 /dev/ttyUSB0
-```
-
-Login:
-```
-root
-```
-
-## Resources
-- Buildroot Manual: https://buildroot.org/downloads/manual/manual.html
-- Lichee Pi Zero Docs: https://licheepizero.readthedocs.io
-- Linux-Sunxi: https://linux-sunxi.org
+This README explains how to change the **Linux kernel version** and **toolchain version** in Buildroot using `menuconfig`.
 
 ---
+
+## Prerequisites
+
+- Buildroot installed
+- Basic knowledge of Buildroot configuration
+- Terminal access
+
+---
+
+## 1. Start Buildroot Menuconfig
+
+Open a terminal in your Buildroot root directory:
+
+```bash
+make menuconfig
+```
+
+This will open the Buildroot configuration menu.
+
+---
+
+## 2. Change Linux Kernel Version
+
+1. Navigate to:
+
+```
+Target packages → Linux → Linux Kernel
+```
+
+2. Enable the kernel (if not already):
+
+```
+[*] Linux Kernel
+```
+
+3. Select the desired kernel version:
+
+```
+(5.15.24) Kernel version  ---> [choose your version]
+```
+
+4. Optional configurations:
+   - Kernel defconfig
+   - Custom patches
+   - Kernel build options
+
+---
+
+## 3. Change Toolchain Version
+
+1. Navigate to:
+
+```
+Toolchain → Toolchain type
+```
+
+2. Choose your toolchain type (Buildroot internal or external).
+
+3. Select the desired GCC version:
+
+```
+Toolchain version ---> [choose your version]
+```
+
+4. Optional configurations:
+   - C library (glibc, uClibc, musl)
+   - Kernel headers version
+   - Compiler options
+
+---
+
+## 4. Save Configuration and Build
+
+1. Save your configuration and exit `menuconfig`.
+2. Rebuild the system:
+
+```bash
+make clean   # optional but recommended
+make
+```
+
+> Note: Changing kernel or toolchain usually requires a **full rebuild**.
+
+---
+
+## 5. Additional Tips
+
+- Ensure the kernel version is compatible with your toolchain and board.
+- Configure kernel headers for the toolchain under:
+
+```
+Toolchain → Kernel headers
+```
+
+- For external toolchains (e.g., Linaro), specify the path:
+
+```
+Toolchain → External toolchain → Toolchain path
+```
+
+---
+
+**References:**
+
+- [Buildroot Manual](https://buildroot.org/downloads/manual/manual.html)
+
