@@ -87,20 +87,24 @@ Authorized users only.
 Create a profile script:
 
 ```bash
-nano rootfs_overlay/etc/profile.d/custom_prompt.sh
+nano rootfs_overlay/etc/profile
 ```
 
 ```bash
-#!/bin/sh
-export PS1="[ELinux@\h \W]$ "
+    #!/bin/sh
+    echo "Welcome to LICHEEPI ZERO DOCK Embedded Linux"
+    export PS1='\[\e[32m\]\u@\h\[\e[0m\]:\[\e[34m\]\w\[\e[0m\]\$ '
 ```
-
-Make it executable:
-
-```bash
-chmod +x rootfs_overlay/etc/profile.d/custom_prompt.sh
-```
-
+1. Save profile section
+2. Enable overlay
+    ```make menuconfig```
+    ```System configuration  --->```
+    ```Root filesystem overlay directories```
+    ```board/myboard/rootfs-overlay```
+3. Rebuild and Test
+    ```make -jx```
+4. Flash and boot your board.
+    ```sudo dd if=output/images/sdcard.img of=/dev/sdx bs=1024 status=progress```
 ---
 
 ## 6. Cross-Compile Counter C Application
@@ -131,9 +135,10 @@ int main(void)
 ### 6.2 Cross Compilation
 
 Using ARM toolchain example:
-
+find gcc path in buildroot
+   ``` buildrrot/output/host/bin/arm-buildroot-linux-gnueabihf-gcc```
 ```bash
-arm-linux-gnueabihf-gcc counter.c -o counter
+arm-buildroot-linux-gnueabihf-gcc counter.c -o counter
 ```
 
 Verify:
@@ -147,6 +152,11 @@ Expected output:
 ```text
 ELF 32-bit LSB executable, ARM
 ```
+we can proceed using the following method.
+
+1. Use the scp command to transfer files to the Embedded Linux system.
+2. Use the destination directory as the target directory in Buildroot.
+3. Use the overlay method in the same way as done for the hostname, banner, and profile sections.
 
 ---
 
@@ -165,6 +175,37 @@ chmod +x rootfs_overlay/usr/bin/counter
 ```
 
 ---
+
+## 7. Set Static IP
+1. Configure and install the network in Buildroot using menuconfig.
+2. Create the network configuration directory:
+```
+   mkdir -p board/myboard/rootfs-overlay/etc/network
+```
+
+4. Create the interfaces file inside ```board/myboard/rootfs-overlay/etc/network``` to define network settings.
+    Add the following content to the ```interfaces``` file (replace with your network details if needed):
+```
+        auto lo
+        iface lo inet loopback
+
+        auto eth0
+        iface eth0 inet static
+            address 192.168.x.x
+            netmask 255.255.255.0
+            gateway 192.168.x.x
+    ```
+
+5. Rebuild Linux using the following command (replace x with the number of CPU cores for parallel compilation):
+     ```make -jx```
+    
+7. Flash Linux onto the SD card and verify the network:
+
+     ```sudo dd if=output/images/sdcard.img of=/dev/sdb bs=4M status=progress```
+
+8. After booting the board, check the IP address using:
+
+     ```ifconfig```
 
 ## 7. Integrating Overlay
 
