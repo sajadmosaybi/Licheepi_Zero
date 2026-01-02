@@ -185,7 +185,8 @@ chmod +x rootfs_overlay/usr/bin/counter
 
 4. Create the interfaces file inside ```board/myboard/rootfs-overlay/etc/network``` to define network settings.
     Add the following content to the ```interfaces``` file (replace with your network details if needed):
-```
+   
+    ```
         auto lo
         iface lo inet loopback
 
@@ -196,7 +197,7 @@ chmod +x rootfs_overlay/usr/bin/counter
             gateway 192.168.x.x
     ```
 
-5. Rebuild Linux using the following command (replace x with the number of CPU cores for parallel compilation):
+6. Rebuild Linux using the following command (replace x with the number of CPU cores for parallel compilation):
      ```make -jx```
     
 7. Flash Linux onto the SD card and verify the network:
@@ -226,17 +227,6 @@ Set path:
 
 ---
 
-### Yocto
-
-Add to recipe:
-
-```bitbake
-FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
-SRC_URI += "file://rootfs_overlay"
-```
-
----
-
 ## 8. Runtime Verification
 
 On target device:
@@ -250,6 +240,7 @@ Expected:
 - Custom hostname
 - Custom banner
 - Custom prompt
+- Static IP
 - Counter increments every second
 
 ---
@@ -257,13 +248,19 @@ Expected:
 ## 9. Summary
 
 ✔ Hostname customization via overlay
+
 ✔ Banner & MOTD customization
+
 ✔ Shell prompt modification
+
+✔ Set Static IP
+
 ✔ Cross-compiled user application
+
 ✔ Clean integration using overlay (no rootfs hacking)
 
 ---
 
-**Author:** Embedded Linux Developer
-**Use case:** STM32MP1 / Raspberry Pi / ARM-based systems
+**Author:** Sajad Mosayebi
+**Use case:** Licheepi Zero/ STM32MP1 / Raspberry Pi / ARM-based systems
 
