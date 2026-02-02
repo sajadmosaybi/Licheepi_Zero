@@ -1,13 +1,13 @@
-# Embedded CLI Shell for STM32MP157A (Buildroot + BusyBox)
+# Embedded CLI Shell for Allwinner V3S (Buildroot + BusyBox)
 
-This project provides a lightweight **Command Line Interface (CLI) shell** written in **C** for the **STM32MP157A-DK1** development board running **Linux built with Buildroot**.  
+This project provides a lightweight **Command Line Interface (CLI) shell** written in **C** for the **Licheepi Zero Dock** development board running **Linux built with Buildroot**.  
 It replaces the standard Linux shell (bash/sh) with a custom user-defined shell that allows only specific commands and restricts system access.
 
 ---
 
 ## 🧩 Features
 
-- Runs automatically on boot via serial console (`ttySTM0`)
+- Runs automatically on boot via serial console (`ttyS0`)
 - Provides a restricted, user-friendly CLI
 - Supports common Linux commands:
   - `ls`, `cat <file>`, `ps`, `reboot`
@@ -22,10 +22,10 @@ It replaces the standard Linux shell (bash/sh) with a custom user-defined shell 
 
 ## 🛠️ Requirements
 
-- STM32MP157A-DK1 board  
+- Licheepi Zero Dock board  
 - Buildroot (tested with 2023.x)  
 - BusyBox init system (default in Buildroot)  
-- UART serial console (e.g., `/dev/ttySTM0` at 115200 baud)
+- UART serial console (e.g., `/dev/ttyS0` at 115200 baud)
 
 ---
 
@@ -73,7 +73,7 @@ make
 
 After the build completes, the binary will be installed at:
 ```
-/usr/bin/embedded_shell
+/usr/bin/myshell
 ```
 
 ---
@@ -84,12 +84,12 @@ Edit your Buildroot overlay or root filesystem file `/etc/inittab`:
 
 Find this line:
 ```
-ttySTM0::respawn:/sbin/getty -L ttySTM0 115200 vt100
+ttyS0::respawn:/sbin/getty -L ttySTM0 115200 vt100
 ```
 
 Replace it with:
 ```
-ttySTM0::respawn:/usr/bin/embedded_shell
+ttyS0::respawn:/usr/bin/myshell
 ```
 
 This ensures that when the board boots and the serial console opens, your CLI runs directly — without login or access to the standard Linux shell.
@@ -102,11 +102,11 @@ When you power up and connect via serial (115200 baud), you’ll see:
 
 ```
 =====================================
-  Embedded CLI Shell - STM32MP157A
+  Embedded CLI Shell - Allwinner V3S
 =====================================
 Type 'help' to see available commands.
 
-stm32>
+shell>
 ```
 
 ### Available Commands
