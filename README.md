@@ -1,80 +1,158 @@
-# Buildroot 2023.05 for Lichee Pi Zero (Allwinner V3s)
+# Embedded CLI Shell for STM32MP157A (Buildroot + BusyBox)
 
-This repository contains **Buildroot 2023.05** configured for the **Lichee Pi Zero** development board, based on the **Allwinner V3s (ARM Cortex-A7)** SoC.
-
-## Project Structure
-```
-my-buildroot-project/
-├── buildroot/              # Buildroot 2023.05 source
-├── configs/                # (optional) Custom configs will go here
-└── board/licheepi-zero/    # (optional) Board-specific files
-```
-
-## Requirements
-
-| Tool | Version |
-|------|----------|
-| Host OS | Linux (Ubuntu recommended) |
-| GCC Toolchain | Installed by Buildroot |
-| Dependencies | `git build-essential ncurses-dev bison flex python3` |
-| SD Card | 8GB or more |
-
-### Install dependencies (Ubuntu)
-```bash
-sudo apt update
-sudo apt install git build-essential bc bison flex libssl-dev ncurses-dev python3 wget cpio unzip
-```
-
-## Build Instructions
-
-```bash
-cd buildroot
-make distclean
-make licheepi_zero_defconfig
-make -j$(nproc)
-```
-
-## Output Files
-Located in:
-```
-buildroot/output/images/
-```
-
-| File | Description |
-|------|--------------|
-| `rootfs.ext4` | Root filesystem |
-| `u-boot-sunxi-with-spl.bin` | Bootloader |
-| `zImage` | Kernel |
-| `sun8i-v3s-licheepi-zero.dtb` | Device Tree |
-
-## Flash to SD Card
-
-```bash
-cd buildroot/output/images/
-sudo dd if=u-boot-sunxi-with-spl.bin of=/dev/sdX bs=1024 seek=8
-```
-
-Partition layout:
-| Partition | Format | Purpose |
-|-----------|---------|----------|
-| p1 | FAT32 | Kernel + DTB |
-| p2 | EXT4 | Rootfs |
-
-## Serial Console
-- Baud: **115200**
-- Command:
-```bash
-picocom -b 115200 /dev/ttyUSB0
-```
-
-Login:
-```
-root
-```
-
-## Resources
-- Buildroot Manual: https://buildroot.org/downloads/manual/manual.html
-- Lichee Pi Zero Docs: https://licheepizero.readthedocs.io
-- Linux-Sunxi: https://linux-sunxi.org
+This project provides a lightweight **Command Line Interface (CLI) shell** written in **C** for the **STM32MP157A-DK1** development board running **Linux built with Buildroot**.  
+It replaces the standard Linux shell (bash/sh) with a custom user-defined shell that allows only specific commands and restricts system access.
 
 ---
+
+## 🧩 Features
+
+- Runs automatically on boot via serial console (`ttySTM0`)
+- Provides a restricted, user-friendly CLI
+- Supports common Linux commands:
+  - `ls`, `cat <file>`, `ps`, `reboot`
+- Includes user-defined commands:
+  - `led_on`, `led_off`
+- Built-in commands:
+  - `help`, `clear`, `exit`
+- Prevents user access to bash or other shells
+- Simple, clean C implementation (no external libraries)
+
+---
+
+## 🛠️ Requirements
+
+- STM32MP157A-DK1 board  
+- Buildroot (tested with 2023.x)  
+- BusyBox init system (default in Buildroot)  
+- UART serial console (e.g., `/dev/ttySTM0` at 115200 baud)
+
+---
+
+## 📁 Project Structure
+
+```
+embedded_shell/
+├── Config.in
+├── embedded_shell.c
+└── embedded_shell.mk
+```
+
+---
+
+## ⚙️ Build Instructions
+
+### 1️⃣ Add to Buildroot
+
+Copy this folder into your Buildroot tree:
+```
+buildroot/package/embedded_shell/
+```
+
+Then add it to Buildroot’s configuration:
+
+```bash
+make menuconfig
+```
+
+Go to:
+```
+Target packages → Misc → [*] embedded_shell
+```
+
+Save and exit.
+
+---
+
+### 2️⃣ Build the System
+
+Run:
+```bash
+make
+```
+
+After the build completes, the binary will be installed at:
+```
+/usr/bin/embedded_shell
+```
+
+---
+
+### 3️⃣ Auto-start on Boot
+
+Edit your Buildroot overlay or root filesystem file `/etc/inittab`:
+
+Find this line:
+```
+ttySTM0::respawn:/sbin/getty -L ttySTM0 115200 vt100
+```
+
+Replace it with:
+```
+ttySTM0::respawn:/usr/bin/embedded_shell
+```
+
+This ensures that when the board boots and the serial console opens, your CLI runs directly — without login or access to the standard Linux shell.
+
+---
+
+## ▶️ Usage Example
+
+When you power up and connect via serial (115200 baud), you’ll see:
+
+```
+=====================================
+  Embedded CLI Shell - STM32MP157A
+=====================================
+Type 'help' to see available commands.
+
+stm32>
+```
+
+### Available Commands
+
+| Command | Description |
+|----------|-------------|
+| `help` | Show list of available commands |
+| `clear` | Clear the terminal screen |
+| `ls` | List files in current directory |
+| `cat <file>` | Display file contents |
+| `ps` | Show running processes |
+| `reboot` | Reboot the system |
+| `led_on` | Turn on LED (example using sysfs) |
+| `led_off` | Turn off LED |
+| `exit` | Exit shell (if `respawn:` in inittab, it restarts) |
+
+---
+
+## 🔒 Security
+
+To limit access to the standard shell:
+- Disable `login` and `bash` in Buildroot (`make menuconfig`)
+- Ensure `/bin/sh` is not accessible
+- Configure `/etc/inittab` to run only this CLI
+
+This ensures that users interacting over UART can **only** use your restricted CLI.
+
+---
+
+## 🧰 Future Enhancements
+
+- Command history and arrow key navigation (via `linenoise`)
+- Tab auto-completion
+- Custom hardware control commands (GPIO, I2C, etc.)
+- Ethernet or UART remote CLI interface
+
+---
+
+## 🧑‍💻 Author
+
+**Sajad Mosayebi**  
+Embedded Systems Engineer  
+📧 Smosaybi@gmail.com 
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — you are free to use, modify, and distribute it with attribution.
