@@ -1,0 +1,23 @@
+#!/bin/bash
+
+case "$1" in
+  start)
+    echo $(date) "Starting myservice..." >> /dev/ttyS0
+    /usr/myshell &
+    ;;
+  stop)
+    echo $(date) "Stopping myservice..." >> /dev/ttyS0
+    killall myshell
+    ;;
+  restart)
+    echo $(date) "Restarting myservice..." >> /dev/ttyS0
+    date
+    $0 stop
+    $0 start
+    ;;
+  *)
+    echo $(date)"Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit 0
