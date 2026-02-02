@@ -1,80 +1,146 @@
-# Buildroot 2023.05 for Lichee Pi Zero (Allwinner V3s)
 
-This repository contains **Buildroot 2023.05** configured for the **Lichee Pi Zero** development board, based on the **Allwinner V3s (ARM Cortex-A7)** SoC.
+# BusyBox Service Program
 
-## Project Structure
-```
-my-buildroot-project/
-├── buildroot/              # Buildroot 2023.05 source
-├── configs/                # (optional) Custom configs will go here
-└── board/licheepi-zero/    # (optional) Board-specific files
-```
-
-## Requirements
-
-| Tool | Version |
-|------|----------|
-| Host OS | Linux (Ubuntu recommended) |
-| GCC Toolchain | Installed by Buildroot |
-| Dependencies | `git build-essential ncurses-dev bison flex python3` |
-| SD Card | 8GB or more |
-
-### Install dependencies (Ubuntu)
-```bash
-sudo apt update
-sudo apt install git build-essential bc bison flex libssl-dev ncurses-dev python3 wget cpio unzip
-```
-
-## Build Instructions
-
-```bash
-cd buildroot
-make distclean
-make licheepi_zero_defconfig
-make -j$(nproc)
-```
-
-## Output Files
-Located in:
-```
-buildroot/output/images/
-```
-
-| File | Description |
-|------|--------------|
-| `rootfs.ext4` | Root filesystem |
-| `u-boot-sunxi-with-spl.bin` | Bootloader |
-| `zImage` | Kernel |
-| `sun8i-v3s-licheepi-zero.dtb` | Device Tree |
-
-## Flash to SD Card
-
-```bash
-cd buildroot/output/images/
-sudo dd if=u-boot-sunxi-with-spl.bin of=/dev/sdX bs=1024 seek=8
-```
-
-Partition layout:
-| Partition | Format | Purpose |
-|-----------|---------|----------|
-| p1 | FAT32 | Kernel + DTB |
-| p2 | EXT4 | Rootfs |
-
-## Serial Console
-- Baud: **115200**
-- Command:
-```bash
-picocom -b 115200 /dev/ttyUSB0
-```
-
-Login:
-```
-root
-```
-
-## Resources
-- Buildroot Manual: https://buildroot.org/downloads/manual/manual.html
-- Lichee Pi Zero Docs: https://licheepizero.readthedocs.io
-- Linux-Sunxi: https://linux-sunxi.org
+This project demonstrates how to create and manage a custom C program as a service on an embedded Linux system using BusyBox `init` and `rcS` scripts.
 
 ---
+
+## 1. Build the Service Program
+
+Example service program (`myservice.c`):
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+
+int main() {
+    while (1) {
+        printf("My service is running...\n");
+        fflush(stdout);
+        sleep(5);
+    }
+    return 0;
+}
+```
+
+### Compile for your target
+```bash
+# Native build
+gcc myservice.c -o myservice
+
+# Cross-compile (example for ARM)
+arm-linux-gnueabihf-gcc myservice.c -o myservice
+```
+
+Copy the binary into your root filesystem:
+```bash
+cp myservice /usr/bin/
+```
+
+---
+
+## 2. Create Init Script
+
+Create `/etc/init.d/S99myservice`:
+
+```sh
+#!/bin/sh
+
+PIDFILE=/var/run/myservice.pid
+SERVICE=/usr/bin/myservice
+
+case "$1" in
+  start)
+    echo "[BOOT] Starting myservice..." > /dev/console
+    $SERVICE &
+    echo $! > $PIDFILE
+    ;;
+  stop)
+    echo "[BOOT] Stopping myservice..." > /dev/console
+    kill `cat $PIDFILE` 2>/dev/null
+    rm -f $PIDFILE
+    ;;
+  restart)
+    echo "[BOOT] Restarting myservice..." > /dev/console
+    $0 stop
+    $0 start
+    ;;
+  status)
+    if [ -f $PIDFILE ] && kill -0 `cat $PIDFILE` 2>/dev/null; then
+      echo "myservice is running with PID `cat $PIDFILE`" > /dev/console
+    else
+      echo "myservice is not running" > /dev/console
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}" > /dev/console
+    exit 1
+esac
+
+exit 0
+```
+
+Make it executable:
+```bash
+chmod +x /etc/init.d/S99myservice
+```
+
+---
+
+## 3. rcS Configuration
+
+The main `rcS` script (`/etc/init.d/rcS`) should look like this:
+
+```sh
+#!/bin/sh
+for i in /etc/init.d/S??* ; do
+    [ -x $i ] && $i start
+done
+```
+
+This ensures all `SXX*` scripts run at boot in numeric order.
+
+- `S99myservice` → runs at the end of boot  
+- If you want your service earlier, rename it (e.g., `S80myservice`)  
+
+---
+
+## 4. Testing
+
+### Start service manually
+```bash
+/etc/init.d/S99myservice start
+```
+
+### Stop service
+```bash
+/etc/init.d/S99myservice stop
+```
+
+### Check status
+```bash
+/etc/init.d/S99myservice status
+```
+
+### Reboot to test auto-start
+```bash
+reboot
+```
+
+At boot, you should see:
+```
+[BOOT] Starting myservice...
+myservice is running with PID 123
+```
+on your **serial console**.
+
+---
+
+## 5. Notes
+- `S` prefix = start scripts at boot  
+- `K` prefix = kill scripts at shutdown (optional)  
+- Numbers (`01–99`) define execution order  
+
+---
+
+✅ With this setup, your C program runs as a proper BusyBox-managed service.  
